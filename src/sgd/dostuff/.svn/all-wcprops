@@ -1,0 +1,89 @@
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/dostuff/!svn/ver/33/src/sgd/dostuff
+END
+BackgroundService.java
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/dostuff/!svn/ver/32/src/sgd/dostuff/BackgroundService.java
+END
+SpotDataSource.java
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/dostuff/!svn/ver/31/src/sgd/dostuff/SpotDataSource.java
+END
+TimeSelectionActivity.java
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/dostuff/!svn/ver/29/src/sgd/dostuff/TimeSelectionActivity.java
+END
+TempItemizedOverlay.java
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/svn/dostuff/!svn/ver/17/src/sgd/dostuff/TempItemizedOverlay.java
+END
+AlarmBroadcastReceiver.java
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svn/dostuff/!svn/ver/24/src/sgd/dostuff/AlarmBroadcastReceiver.java
+END
+Main.java
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/dostuff/!svn/ver/33/src/sgd/dostuff/Main.java
+END
+Spot.java
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/dostuff/!svn/ver/31/src/sgd/dostuff/Spot.java
+END
+DostuffActivity.java
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/dostuff/!svn/ver/31/src/sgd/dostuff/DostuffActivity.java
+END
+MySQLiteHelper.java
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/dostuff/!svn/ver/24/src/sgd/dostuff/MySQLiteHelper.java
+END
+Objective.java
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/dostuff/!svn/ver/28/src/sgd/dostuff/Objective.java
+END
+DevActivity.java
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svn/dostuff/!svn/ver/31/src/sgd/dostuff/DevActivity.java
+END
+ObjectiveAdapter.java
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/dostuff/!svn/ver/31/src/sgd/dostuff/ObjectiveAdapter.java
+END
+SpotViewActivity.java
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/dostuff/!svn/ver/31/src/sgd/dostuff/SpotViewActivity.java
+END
+LocationCheckerService.java
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svn/dostuff/!svn/ver/26/src/sgd/dostuff/LocationCheckerService.java
+END

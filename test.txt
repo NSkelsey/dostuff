@@ -1,0 +1,27 @@
+
+hello world
+goodbye world
+
+
+Certificate: B2:6E:E0:EC:A7:94:F8:2D:EB:9E:B3:12:DC:87:C9:1F
+
+API key: 0lPydr07ilDodAPVCEPgA2MLMc8Lun9DGaHbVbA
+
+Example geocode URL: http://maps.google.com/maps/geo?q=38.03,-78.478889&output=xml&oe=utf8&sensor=true&key=0lPydr07ilDodAPVCEPgA2MLMc8Lun9DGaHbVbA
+
+
+http://dl.dropbox.com/u/58378576/derpstuff.zip
+
+
+In the emulator the startup process is as follows.
+
+Unistall any previous versions of dostuff on the emulator.
+
+Boot up google maps and hit the target icon to begin location faking
+
+Send a fake location through emulator control to verify location tracking
+
+Launch application
+
+The background services will now work without horrible failure.
+

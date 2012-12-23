@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="sgd.dostuff"
+    android:versionCode="1"
+    android:versionName="1.0" >
+
+    <uses-sdk android:minSdkVersion="10" />
+
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_MOCK_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_CALENDAR"></uses-permission>
+    <uses-premissions android:name="android.permission.WAKE_LOCK" />
+
+    <application
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/DoStuffTheme">
+        <uses-library
+            android:name="com.google.android.maps"
+            android:required="true" >
+        </uses-library>
+
+        <service android:name=".BackgroundService" />
+        <service android:name=".LocationCheckerService" />
+        <receiver  android:process=":remote" android:name="AlarmBroadcastReceiver"></receiver>
+
+        <activity
+            android:name=".Main"
+            android:label="@string/app_name" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".DostuffActivity"
+            android:label="@string/app_name" >
+        </activity>
+        <activity
+            android:name=".TimeSelectionActivity"
+            android:label="@string/app_name" 
+            android:noHistory="true">
+        </activity>
+        <activity
+            android:name=".SpotViewActivity"
+            android:label="@string/app_name" >
+        </activity>
+        <activity
+            android:name=".DevActivity"
+            android:label="@string/app_name" >
+        </activity>
+    </application>
+
+</manifest>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="hello">Hello World, DostuffActivity!</string>
+    <string name="app_name">Dostuff</string>
+    <string name="button1text">Create a new event</string>
+    <string name="timeselectbutton">Continue</string>
+    <string name="mapsbuttonstring">Click me then pick a place</string>
+    <string name="dbstring">nothing in db</string>
+    <string name="bsbutton">Start background service</string>
+    <string name="eventwincount">" "</string>
+
+</resources>

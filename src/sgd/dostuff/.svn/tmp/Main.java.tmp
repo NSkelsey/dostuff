@@ -1,0 +1,859 @@
+package sgd.dostuff;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Random;
+import java.util.Stack;
+
+import sgd.dostuff.Objective.ObjectiveStatus;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.database.Cursor;
+import android.graphics.Color;
+import android.net.Uri;
+import android.os.Bundle;
+import android.provider.BaseColumns;
+import android.text.TextUtils;
+import android.util.Log;
+import android.view.ContextMenu;
+import android.view.Menu;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ContextMenu.ContextMenuInfo;
+import android.view.View.OnTouchListener;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.AdapterView.OnItemLongClickListener;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.widget.Toast;
+
+public class Main extends Activity
+{
+
+	public static String ANDROID_CALENDAR_AUTHORITY_1_0 = "calendar";
+	public static String ANDROID_CALENDAR_AUTHORITY_2_0 = "com.android.calendar";
+
+	public static String ANDROID_CALENDAR_PROVIDER_PATH_CALENDARS = "calendars";
+	public static String ANDROID_CALENDAR_PROVIDER_PATH_EVENTS = "events";
+
+	public static final String AUTHORITY = "org.openintents.calendarpicker.demo.provider.events";
+
+	static Uri BASE_URI = new Uri.Builder().scheme(ContentResolver.SCHEME_CONTENT).authority(AUTHORITY).path("events").build();
+
+	long selected_google_calendar_id = -1;
+
+	private static final String TAG = "dostuff_main";
+	private static final long NULL_ID = -1;
+	private SpotDataSource datasource;
+	private boolean serviceOn = false;
+	private Intent backIntent, locationChecker;
+
+	private int wincount = 0;
+	private Dialog mScoringDialog;
+
+	// should be in database TODO
+	private int mProgress = 10;
+
+	// Views
+	private ListView mObjectivesLV;
+	private ProgressBar mProgressBar;
+	private TextView mProgressText;
+	private CheckBox mPlayingCheck;
+	public static final int DIALOG_GOOGLE_CALENDAR_SELECTION = 1;
+	public static final int DIALOG_CALENDARPICKER_DOWNLOAD = 2;
+	public static final int DIALOG_CALENDAR_GET_STUFF = 3;
+	private static final int REQUEST_CODE_DATE_SELECTION = 1;
+	private static final int REQUEST_CODE_EVENT_SELECTION = 2;
+
+	public static final String KEY_ROWID = BaseColumns._ID;
+	public static final String KEY_EVENT_TIMESTAMP = CalendarEventPicker.ContentProviderColumns.TIMESTAMP;
+	public static final String KEY_EVENT_TITLE = CalendarEventPicker.ContentProviderColumns.TITLE;
+
+	public static final long MILLISECONDS_PER_DAY = 1000L * 60 * 60 * 24;
+	public static final int DAYS_PER_WEEK = 7;
+	static final long MILLISECONDS_PER_WEEK = DAYS_PER_WEEK * MILLISECONDS_PER_DAY;
+	static final int MONTHS_PER_YEAR = 12;
+	final static SimpleDateFormat YMD_FORMATTER = new SimpleDateFormat("MMMM d, yyyy");
+
+	final int[] COLORMAP_COLORS = new int[] { Color.BLUE, Color.GREEN, Color.RED };
+
+	public static class DownloadInfo
+	{
+
+		public final static String PACKAGE_NAME_CALENDAR_PICKER = "org.openintents.calendarpicker";
+		public final static String CALENDAR_PICKER_WEBSITE = "http://www.openintents.org/en/calendarpicker";
+
+		public final static String APK_DOWNLOAD_URL_PREFIX = "http://openintents.googlecode.com/files/";
+		public final static String APK_APP_NAME = "CalendarPicker";
+		public final static String APK_VERSION_NAME = "1.0.0";
+		public final static Uri APK_DOWNLOAD_URI = Uri.parse(APK_DOWNLOAD_URL_PREFIX + APK_APP_NAME + "-" + APK_VERSION_NAME + ".apk");
+
+		// ========================================================================
+		public static final String MARKET_PACKAGE_DETAILS_PREFIX = "market://details?id=";
+		public static final String MARKET_PACKAGE_DETAILS_STRING = MARKET_PACKAGE_DETAILS_PREFIX + PACKAGE_NAME_CALENDAR_PICKER;
+
+		// ========================================================================
+		public static Intent getMarketDownloadIntent(String package_name)
+		{
+			Uri market_uri = Uri.parse(MARKET_PACKAGE_DETAILS_PREFIX + package_name);
+			return new Intent(Intent.ACTION_VIEW, market_uri);
+		}
+
+		// ================================================
+		public static boolean isIntentAvailable(Context context, Intent intent)
+		{
+			final PackageManager packageManager = context.getPackageManager();
+			List<ResolveInfo> list = packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+			return list.size() > 0;
+		}
+	}
+
+	// ========================================================================
+	public static final class CalendarDatePicker
+	{
+
+		public static String CONTENT_TYPE_DATETIME = "text/datetime";
+
+		/** Date picker Intent extras */
+		public static final class IntentExtras
+		{
+
+			/** an ISO 8601 date string */
+			public static String INTENT_EXTRA_DATETIME = "datetime";
+
+			/** A long */
+			public static String INTENT_EXTRA_EPOCH = "epoch";
+		}
+	}
+
+	public static final class CalendarEventPicker
+	{
+
+		private static final String VND_TYPE_DECLARATION = "event";
+
+		// ==== CONTENT TYPES ====
+		public static final String CONTENT_TYPE_BASE_SINGLE = ContentResolver.CURSOR_ITEM_BASE_TYPE + "/";
+		public static final String CONTENT_TYPE_BASE_MULTIPLE = ContentResolver.CURSOR_DIR_BASE_TYPE + "/";
+
+		public static final String CONTENT_TYPE_ITEM_CALENDAR_EVENT = CONTENT_TYPE_BASE_SINGLE + VND_TYPE_DECLARATION;
+		public static final String CONTENT_TYPE_CALENDAR_EVENT = CONTENT_TYPE_BASE_MULTIPLE + VND_TYPE_DECLARATION;
+
+		/** Calendar event Intent extras */
+
+		public static final class IntentExtras
+		{
+			public static final String EXTRA_EVENT_IDS = "org.openintents.calendarpicker.intent.extra.EVENT_IDS";
+			public static final String EXTRA_EVENT_TIMESTAMPS = "org.openintents.calendarpicker.intent.extra.EVENT_TIMESTAMPS";
+			public static final String EXTRA_EVENT_TITLES = "org.openintents.calendarpicker.intent.extra.EVENT_TITLES";
+
+			public static final String EXTRA_CALENDAR_ID = "calendar_id";
+
+			/**
+			 * Boolean for color mapping the calendar background color to
+			 * aggregate day quantity
+			 */
+			public static final String EXTRA_VISUALIZE_QUANTITIES = "org.openintents.calendarpicker.intent.extra.VISUALIZE_QUANTITIES";
+
+			/**
+			 * Boolean for whether to display the day's event count. Default:
+			 * true
+			 */
+			public static final String EXTRA_SHOW_EVENT_COUNT = "org.openintents.calendarpicker.intent.extra.SHOW_EVENT_COUNT";
+
+			public static final String[] EXTRA_QUANTITY_COLUMN_NAMES = new String[] {
+				"org.openintents.calendarpicker.intent.extra.QUANTITY0_COLUMN_NAME",
+			"org.openintents.calendarpicker.intent.extra.QUANTITY1_COLUMN_NAME" };
+
+			public static final String[] EXTRA_QUANTITY_FORMATS = new String[] {
+				"org.openintents.calendarpicker.intent.extra.QUANTITY0_NUMBER_FORMAT",
+			"org.openintents.calendarpicker.intent.extra.QUANTITY1_NUMBER_FORMAT" };
+
+			/**
+			 * Integer for selecting the quantity for determining the background
+			 * color values If this value is omitted, the day's event count will
+			 * be used for the color value.
+			 */
+			public static final String EXTRA_BACKGROUND_COLORMAP_QUANTITY_INDEX = "org.openintents.calendarpicker.intent.extra.BACKGROUND_COLORMAP_QUANTITY_INDEX";
+
+			/** An array of color integers */
+			public static final String EXTRA_BACKGROUND_COLORMAP_COLORS = "org.openintents.calendarpicker.intent.extra.BACKGROUND_COLORMAP_COLORS";
+		}
+
+		/** Columns to supply when implementing a ContentProvider for events */
+		public static final class ContentProviderColumns implements BaseColumns
+		{
+			/*
+			 * public static final String TITLE = "title"; public static final
+			 * String TIMESTAMP = "dtstart"; public static final String
+			 * CALENDAR_ID = "calendar_id";
+			 */
+			/** Columns to supply when implementing a ContentProvider for events */
+			public static final String TITLE = "title";
+			public static final String TIMESTAMP = "dtstart";
+			public static final String CALENDAR_ID = "calendar_id";
+
+			public static final String TABLE_SPOTS = "spots";
+			public static final String COLUMN_ID = "_id";
+			public static final String COLUMN_LAT = "lat";
+			public static final String COLUMN_LON = "lon";
+			public static final String COLUMN_DATE = "dtstart";
+			public static final String COLUMN_PTVAL = "ptval";
+			public static final String COLUMN_NAME = "title";
+			public static final String CALENDAR_COLUMN_NAME = "title";
+		}
+	}
+
+	private BroadcastReceiver br = new BroadcastReceiver() {
+
+		@Override
+		public void onReceive(Context context, Intent intent)
+		{
+			Log.v(TAG, "broadcast receiver called; intent = " + intent.toString());
+			Log.v(TAG, "id attached = " + intent.getLongExtra("ID", NULL_ID));
+			update(intent);
+		}
+	};
+
+	/*
+	 * ==========================================================================
+	 * = LifeCycle
+	 * ==============================================================
+	 * =============
+	 */
+
+	@Override
+	public void onCreate(Bundle bundle)
+	{
+		super.onCreate(bundle);
+		setContentView(R.layout.main);
+
+		// initialize sql database
+		datasource = new SpotDataSource(this);
+
+		// winar = (ImageView) findViewById(R.id.imageView1);
+		// winar.setVisibility(winar.GONE);
+
+		backIntent = new Intent(this, BackgroundService.class);
+		locationChecker = new Intent(this, LocationCheckerService.class);
+
+		// get pointers to Views we care about
+		mObjectivesLV = (ListView) findViewById(R.id.objectivesList);
+		mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
+		mProgressText = (TextView) findViewById(R.id.scoreText);
+		mPlayingCheck = (CheckBox) findViewById(R.id.playingCheck);
+
+		// initialize UI elements that need initializing
+		initializeProgressBar();
+		setupObjectivesList();
+		
+		mPlayingCheck.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+
+			public void onCheckedChanged(CompoundButton buttonView,
+					boolean isChecked) {
+				
+				backIntent = new Intent(getBaseContext(), BackgroundService.class);
+				try {
+					if (isChecked) {
+						startService(backIntent);
+						Log.d(TAG, "starting background service");
+					} else {
+						stopService(backIntent);
+						Log.d(TAG, "stopping background service");
+					}
+				} catch (Exception e) {};
+			}
+		});
+		//mPlayingCheck.setChecked(true);	//TODO check if saved persistently from last time
+
+		// initialize the dialog the pops up when you do stuff
+		initializeScoringDialog();
+		
+	}
+
+	// ========================================================================
+	void downloadLaunchCheck(Intent intent, int request_code)
+	{
+		if (DownloadInfo.isIntentAvailable(this, intent))
+			if (request_code >= 0)
+				startActivityForResult(intent, request_code);
+			else
+				startActivity(intent);
+		else
+			showDialog(DIALOG_CALENDARPICKER_DOWNLOAD);
+	}
+
+	@Override
+	protected Dialog onCreateDialog(int id)
+	{
+
+		switch (id)
+		{
+		case DIALOG_CALENDARPICKER_DOWNLOAD:
+		{
+			return new AlertDialog.Builder(this).setIcon(android.R.drawable.ic_dialog_alert).setTitle("Calendar Download")// put
+					// in
+					// R
+					.setMessage("Download the Calendar?")// put in R
+					.setPositiveButton("Download R Calendar Positive", new DialogInterface.OnClickListener() {// put
+						// in
+						// R
+						public void onClick(DialogInterface dialog, int whichButton)
+						{
+							startActivity(DownloadInfo.getMarketDownloadIntent(DownloadInfo.PACKAGE_NAME_CALENDAR_PICKER));
+						}
+					}).setNeutralButton("Download from R Neutral", new DialogInterface.OnClickListener() {// put
+						// in
+						// R
+						public void onClick(DialogInterface dialog, int whichButton)
+						{
+							startActivity(new Intent(Intent.ACTION_VIEW, DownloadInfo.APK_DOWNLOAD_URI));
+						}
+					}).create();
+		}
+		case DIALOG_GOOGLE_CALENDAR_SELECTION:
+		{
+			Uri calendars = new Uri.Builder().scheme(ContentResolver.SCHEME_CONTENT).authority(ANDROID_CALENDAR_AUTHORITY_2_0)
+					.appendPath(ANDROID_CALENDAR_PROVIDER_PATH_CALENDARS).build();
+			Log.v("BLAG", calendars.toString());
+			final Cursor cursor = managedQuery(calendars, null, null, null, null);
+
+			return new AlertDialog.Builder(this).setIcon(android.R.drawable.ic_dialog_alert).setTitle("Choose calendar")
+					.setSingleChoiceItems(cursor, -1, "name", new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog, int which)
+						{
+							cursor.moveToPosition(which);
+							selected_google_calendar_id = cursor.getLong(cursor.getColumnIndex(BaseColumns._ID));
+						}
+					}).setPositiveButton("Select", new DialogInterface.OnClickListener() {
+						
+						public void onClick(DialogInterface dialog, int which)
+						{
+							Log.d(TAG, "Selected calendar ID: " + selected_google_calendar_id);
+
+							Uri uri = new Uri.Builder().scheme(ContentResolver.SCHEME_CONTENT)
+									.authority(ANDROID_CALENDAR_AUTHORITY_2_0).appendPath(ANDROID_CALENDAR_PROVIDER_PATH_EVENTS)
+									.build();
+
+							Log.d(TAG, uri.toString());
+							Log.v(TAG, uri.toString());
+
+							Intent intent = new Intent(Intent.ACTION_PICK, uri);
+							intent.putExtra(CalendarEventPicker.IntentExtras.EXTRA_CALENDAR_ID, selected_google_calendar_id);
+
+							intent.putExtra(CalendarEventPicker.IntentExtras.EXTRA_QUANTITY_FORMATS[0], "%.3f");
+
+							intent.putExtra(CalendarEventPicker.IntentExtras.EXTRA_VISUALIZE_QUANTITIES, true);
+							intent.putExtra(CalendarEventPicker.IntentExtras.EXTRA_BACKGROUND_COLORMAP_COLORS, COLORMAP_COLORS);
+							intent.putExtra(CalendarEventPicker.IntentExtras.EXTRA_SHOW_EVENT_COUNT, true);
+
+							downloadLaunchCheck(intent, REQUEST_CODE_EVENT_SELECTION);
+						}
+					}).create();
+		}
+		/*
+		 * case Main.DIALOG_CALENDAR_GET_STUFF: { Uri intent_data =
+		 * getIntent().getData();
+		 * 
+		 * Date d = new
+		 * Date(getIntent().getLongExtra(CalendarDatePicker.IntentExtras
+		 * .INTENT_EXTRA_EPOCH, 0));
+		 * 
+		 * long day_begin = d.getTime(); long day_end = day_begin +
+		 * MILLISECONDS_PER_DAY;
+		 * 
+		 * String selection = null; if
+		 * (getIntent().hasExtra(CalendarEventPicker
+		 * .ContentProviderColumns.CALENDAR_ID)) { long cal_id =
+		 * getIntent().
+		 * getLongExtra(CalendarEventPicker.ContentProviderColumns
+		 * .CALENDAR_ID, -1); selection =
+		 * CalendarEventPicker.ContentProviderColumns.CALENDAR_ID + "=" +
+		 * cal_id; }
+		 * 
+		 * Cursor cursor = managedQuery(intent_data,
+		 * getAugmentedProjection(getIntent()), KEY_EVENT_TIMESTAMP +
+		 * ">=? AND " + KEY_EVENT_TIMESTAMP + "<?" + (selection == null ? ""
+		 * : " AND " + selection), new String[] { Long.toString(day_begin),
+		 * Long.toString(day_end) }, constructOrderByString());
+		 * 
+		 * int cursor_row_count = cursor.getCount();
+		 * 
+		 * String header_text = cursor_row_count + " event(s) on " +
+		 * YMD_FORMATTER.format(d); //((TextView)
+		 * findViewById(R.id.list_header)).setText(header_text);
+		 * 
+		 * return cursor; }
+		 */
+		}
+
+		return null;
+	}
+
+	Stack<SortCriteria> sorting_order = new Stack<SortCriteria>();
+
+	enum SortCriteria {
+		ALPHA, DATE
+	}
+
+	String[] sort_column_names = { KEY_EVENT_TITLE, KEY_EVENT_TIMESTAMP };
+	boolean[] default_ascending = { true, true };
+
+	String constructOrderByString()
+	{
+		List<String> sort_pieces = new ArrayList<String>();
+		for (int i = 0; i < sorting_order.size(); i++)
+		{
+			int sort_col = sorting_order.get(i).ordinal();
+			sort_pieces.add(sort_column_names[sort_col] + " " + (default_ascending[sort_col] ? "ASC" : "DESC"));
+		}
+		Collections.reverse(sort_pieces);
+		return TextUtils.join(", ", sort_pieces);
+	}
+
+	// ========================================================================
+	public static String[] getAugmentedProjection(Intent intent)
+	{
+
+		List<String> projection = new ArrayList<String>(Arrays.asList(new String[] { BaseColumns._ID,
+				CalendarEventPicker.ContentProviderColumns.TIMESTAMP, CalendarEventPicker.ContentProviderColumns.TITLE }));
+		for (String extra : CalendarEventPicker.IntentExtras.EXTRA_QUANTITY_COLUMN_NAMES)
+			if (intent.hasExtra(extra))
+				projection.add(intent.getStringExtra(extra)); // Adds column
+		// name
+
+		return projection.toArray(new String[] {});
+	}
+
+	public static Uri constructUri(long data_id)
+	{
+		return ContentUris.withAppendedId(BASE_URI, data_id);
+	}
+
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu)
+	{
+		super.onPrepareOptionsMenu(menu);
+		Intent intent = new Intent(this, DevActivity.class);
+		startActivity(intent);
+		return true;
+	}
+
+	public void onClick(View view)
+	{
+		switch (view.getId())
+		{
+		case R.id.eventbutton:
+			Intent intent = new Intent(this, TimeSelectionActivity.class);
+			startActivity(intent);
+			break;
+
+			/*
+			 * case R.id.startservice:
+			 * 
+			 * if (serviceOn == false) { startService(backIntent);
+			 * startService(locationChecker);
+			 * Toast.makeText(getApplicationContext(),
+			 * "Background service started", Toast.LENGTH_SHORT) .show();
+			 * serviceOn = true; } else { stopService(backIntent);
+			 * stopService(locationChecker);
+			 * Toast.makeText(getApplicationContext(),
+			 * "Background service stopped", Toast.LENGTH_SHORT) .show();
+			 * serviceOn = false; } break; //
+			 */
+		case R.id.spotviewbutton:
+			if (selected_google_calendar_id == -1)
+			{
+				showDialog(DIALOG_GOOGLE_CALENDAR_SELECTION);
+			}
+			else
+			{
+				// Uri intent_data = getIntent().getData();
+
+				Uri base = new Uri.Builder().scheme(ContentResolver.SCHEME_CONTENT).authority(ANDROID_CALENDAR_AUTHORITY_2_0)
+						.appendPath(ANDROID_CALENDAR_PROVIDER_PATH_EVENTS).build();
+
+				//Uri intent_data = ContentUris.withAppendedId(base, selected_google_calendar_id);//constructUri(selected_google_calendar_id);
+				Uri intent_data = base;
+				Log.v("blag", base.toString());
+				Log.v("blag", intent_data.toString());
+
+				Date d = new Date(getIntent().getLongExtra(CalendarDatePicker.IntentExtras.INTENT_EXTRA_EPOCH, 0));
+
+				long day_begin = d.getTime();
+				long day_end = day_begin + MILLISECONDS_PER_DAY;
+
+				String selection = null;
+				if (getIntent().hasExtra(CalendarEventPicker.ContentProviderColumns.CALENDAR_ID))
+				{
+					long cal_id = getIntent().getLongExtra(CalendarEventPicker.ContentProviderColumns.CALENDAR_ID, -1);
+					selection = CalendarEventPicker.ContentProviderColumns.CALENDAR_ID + "=" + cal_id;
+				}
+
+				Cursor cursor = managedQuery(intent_data, getAugmentedProjection(getIntent()), /*KEY_EVENT_TIMESTAMP + ">=? AND "
+							+ KEY_EVENT_TIMESTAMP + "<?" + (selection == null ? "" : " AND " + selection),
+							new String[] { Long.toString(day_begin), Long.toString(day_end) },
+				 */
+						null, null, constructOrderByString());
+
+				int cursor_row_count = cursor.getCount();
+
+				String header_text = cursor_row_count + " events";
+
+				Log.v("BLAG",header_text);
+				Log.v("DEBUG", "Cursor Not Null");
+				Log.v("DEBUG", "THIS IS MY STUFF. LEAVE ME ALONE.");
+				cursor.moveToFirst();
+				while (!cursor.isAfterLast())
+				{
+					String val = "";
+					// Spot spot = cursorToSpot(cursor);
+					// names.add(cursor.getInt(0)+" "+curso);
+
+					val = "";
+					for (int x = 0; x < cursor.getColumnCount(); x++)
+					{
+						val += cursor.getString(x) + " ";
+					}
+					Log.v("DEBUG", val);
+					cursor.moveToNext();
+				}
+				cursor.moveToFirst();
+				cursor.close();
+			}
+			// ((TextView)
+			// findViewById(R.id.list_header)).setText(header_text);
+
+			/*
+			 * if (serviceOn == false) { backIntent = new Intent(this,
+			 * BackgroundService.class); startService(backIntent);
+			 * //startService(locationChecker);
+			 * Toast.makeText(getApplicationContext(),
+			 * "Background service started", Toast.LENGTH_SHORT) .show();
+			 * serviceOn = true; } else { stopService(backIntent);
+			 * 
+			 * //stopService(locationChecker);
+			 * Toast.makeText(getApplicationContext(),
+			 * "Background service stopped", Toast.LENGTH_SHORT) .show();
+			 * serviceOn = false; } //
+			 */
+
+			/*
+			 * Intent intent1 = new Intent(this, SpotViewActivity.class);
+			 * intent1.putExtra("ID", 5); startActivity(intent1); //
+			 */
+			break;
+			/*
+			 * case R.id.showDialogBtn:
+			 * 
+			 * // randomly adjust the progress bar; max value it can do = 100
+			 * mProgressBar.setProgress(new Random().nextInt(100));
+			 * 
+			 * mScoringDialog.show(); break; //
+			 */
+		}
+	}
+
+	@Override
+	public void onPause()
+	{
+		super.onPause();
+		unregisterReceiver(br);
+	}
+
+	@Override
+	public void onResume()
+	{
+		super.onResume();
+
+		if (datasource == null)
+		{
+			datasource = new SpotDataSource(this);
+		}
+
+		registerReceiver(br, new IntentFilter(LocationCheckerService.BROADCAST_ACTION));
+
+		// TODO actually make it update what you've completed and deal with it
+		// properly
+		// -get list of successful objectives not yet added from database
+		// (service will need to be updating this list in the background)
+		// -update the database
+		// -evaluate points to be given
+		// -evaluate achievements/bonuses?
+		// update UI
+		// -update progress bar
+		// -update objective listview
+		// -update action bar icon?
+		// show a happy dialog showing the user how awesome they are
+
+		update(getIntent());
+	}
+
+	/*
+	 * ==========================================================================
+	 * = Public Methods
+	 * ==========================================================
+	 * =================
+	 */
+
+	public void update(Intent i)
+	{
+
+		// always update objectives list in case more were added
+		updateObjectivesList();
+
+		// if the intent carries the id of a completed objective,
+		// update accordingly
+		if (i == null)
+			return;
+		long id = i.getLongExtra("ID", NULL_ID);
+		if (id == NULL_ID)
+			return;
+
+		datasource.open();
+		Spot s = datasource.getSpotByID(id);
+		datasource.close();
+
+		updateScore(s);
+		updateUI(s);
+		showHappyDialog(s);
+
+		// Hack to get it to make the last item turn successful for MSE
+		ObjectiveAdapter adapter = (ObjectiveAdapter) mObjectivesLV.getAdapter();
+		Objective o = adapter.getItem(adapter.getCount() - 1);
+		o.setStatus(ObjectiveStatus.SUCCESS);
+		updateObjectivesList();
+	}
+
+	private void showHappyDialog(Objective o)
+	{
+
+		// TODO custom dialog subclass with setPoints() method
+
+		mScoringDialog = new Dialog(this);// , R.style.ScoreDialogTheme);
+
+		mScoringDialog.setCanceledOnTouchOutside(true);
+		mScoringDialog.setContentView(R.layout.score_dialog);
+
+		// make it say the right stuff
+		TextView tv = (TextView) mScoringDialog.findViewById(R.id.ScoringDialogText);
+		tv.setText("You got\n" + o.getPtsgot() + "\npoints! Welcome to Zombocom!");
+		tv.setTextColor(Color.GREEN);
+		tv.setTextSize(30);
+
+		mScoringDialog.show();
+	}
+
+	private void updateScore(Objective o)
+	{
+		// TODO Auto-generated method stub
+	}
+
+	/*
+	 * ==========================================================================
+	 * = Private Methods
+	 * ========================================================
+	 * ===================
+	 */
+
+	private void initializeScoringDialog()
+	{
+		mScoringDialog = new Dialog(this);// , R.style.ScoreDialogTheme);
+
+		mScoringDialog.setCanceledOnTouchOutside(true);
+		mScoringDialog.setContentView(R.layout.score_dialog);
+
+		// make it say the right stuff
+		TextView tv = (TextView) mScoringDialog.findViewById(R.id.ScoringDialogText);
+		tv.setText("You got\n" + (new Random().nextInt() & 63) + "\npoints! Welcome to Zombocom!");
+		tv.setTextColor(Color.GREEN);
+		tv.setTextSize(30);
+	}
+
+	/** important -- something needs to actually call this */
+	private void updateUI(Objective o)
+	{
+		updateProgressBar();
+		updateObjectivesList();
+		((ObjectiveAdapter) mObjectivesLV.getAdapter()).clear();
+	}
+
+	private void updateProgressBar()
+	{
+		datasource.open();
+		mProgress = datasource.calculateTotalPtsGot();
+		mProgressBar.setMax(datasource.calculateTotalPtVal());
+		datasource.close();
+		Log.v(TAG, "" +mProgress);
+		mProgressBar.setProgress(mProgress);
+		mProgressBar.setProgress(1000);
+		mProgressText.setText(mProgress + "/" + mProgressBar.getMax());
+	}
+
+	private void updateObjectivesList()
+	{
+
+		Log.v(TAG, "updating objectives list");
+
+		// have our listview show the right items
+		// mObjectivesLV.setAdapter(new ObjectiveAdapter(this,
+		// R.layout.icon_text_row, getObjectivesListItems()));
+
+		// ((ObjectiveAdapter)
+		// mObjectivesLV.getAdapter()).notifyDataSetChanged();
+
+		ObjectiveAdapter adapter = new ObjectiveAdapter(this, R.layout.objectives_list_row, getObjectivesListItems());
+		// adapter.setNotifyOnChange(false); //we need this for updating
+		// efficiently
+		mObjectivesLV.setAdapter(adapter);
+
+		// clear what's in the list, and then add in the (possibly) altered
+		// objectives
+		/*
+		 * datasource.open(); ObjectiveAdapter adapter = (ObjectiveAdapter)
+		 * mObjectivesLV.getAdapter(); adapter.clear(); for (Objective o :
+		 * getObjectivesListItems()) {
+		 * 
+		 * if (o.getPtsgot() != 0) { o.setStatus(ObjectiveStatus.SUCCESS); //if
+		 * you got any points, call it a win } else {
+		 * o.setStatus(ObjectiveStatus.FAILURE); //otherwise, you lose }
+		 * Log.v(TAG, "adding an objective to the list: " + o.getName() + " : "
+		 * + o.getStatus()); //adapter.add(o); } adapter.notifyDataSetChanged();
+		 * datasource.close(); //
+		 */
+		/*
+		 * ObjectiveAdapter adapter = new ObjectiveAdapter(this,
+		 * R.layout.icon_text_row, getObjectivesListItems());
+		 * //adapter.setNotifyOnChange(false); //we need this for updating
+		 * efficiently mObjectivesLV.setAdapter(adapter); //
+		 */
+
+	}
+
+	private void setupObjectivesList()
+	{
+
+		// tell our listview to show the set of objectives in our database
+		ObjectiveAdapter adapter = new ObjectiveAdapter(this, R.layout.objectives_list_row, getObjectivesListItems());
+		// adapter.setNotifyOnChange(false); //we need this for updating
+		// efficiently
+		mObjectivesLV.setAdapter(adapter);
+
+		// have it respond to items being selected (selected != clicked)
+		// setItemSelectedListener(); TODO
+
+		// have it respond to normal clicks
+		setItemClickListener();
+
+		// have it respond to long clicks
+		setItemLongClickListener();
+
+		updateObjectivesList();
+	}
+
+	// TODO make this do something reasonable
+	private void setItemClickListener()
+	{
+		mObjectivesLV.setOnItemClickListener(new OnItemClickListener() {
+
+			public void onItemClick(AdapterView<?> lv, View v, int position, long id)
+			{
+
+				// make sure we can manipulate crap in the objectives list
+				Objective o = (Objective) lv.getItemAtPosition(position);
+				// o.setStatus(ObjectiveStatus.SUCCESS);
+				// updateObjectivesList();
+
+				// This cast only works while we have only one type.
+				// This creation of intents will have to be dynamically done in
+				// the future
+				Spot s = (Spot) o;
+				Intent i = new Intent(getBaseContext(), SpotViewActivity.class);
+
+				// TODO all this crap here
+				// This Does NOT work when one of these is items clicked the
+				// cast fails and in SpotViewActivity
+				// the default value assigned to id is 1. So the cast is not
+				// really working but it shoudld.
+				// Or at least it should be at a point where it could work.
+				i.putExtra("ID", o.getId());
+				startActivity(i);
+
+				// updateProgressBar();
+			}
+		});
+	}
+
+	// TODO make this do something reasonable
+	private void setItemLongClickListener()
+	{
+		mObjectivesLV.setOnItemLongClickListener(new OnItemLongClickListener() {
+
+			public boolean onItemLongClick(AdapterView<?> lv, View v, int position, long id)
+			{
+
+				// make sure we can manipulate crap in the objectives list
+				Objective o = (Objective) lv.getItemAtPosition(position);
+				o.setStatus(ObjectiveStatus.FAILURE);
+				updateObjectivesList();
+
+				// make sure showing the dialog works
+				// showHappyDialog(o);
+
+				return true;
+			}
+		});
+	}
+
+	private List<Objective> getObjectivesListItems()
+	{
+		List<Objective> history = new ArrayList<Objective>();
+		if (DevActivity.showAll == false){
+
+
+			datasource.open();
+			
+			history.addAll(datasource.getWeekOfSpots());
+			datasource.close();
+		} else {
+			datasource.open();
+			history.addAll(datasource.getAllDateSorted());
+			datasource.close();
+			
+		}
+
+		return history;
+	}
+
+	private void initializeProgressBar()
+	{
+		updateProgressBar();
+		mProgressBar.setOnTouchListener(new OnTouchListener() {
+
+			public boolean onTouch(View v, MotionEvent event) {
+
+				return false;
+			}
+		});
+	}
+
+}

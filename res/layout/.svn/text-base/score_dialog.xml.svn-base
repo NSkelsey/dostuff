@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="240dp"
+    android:layout_height="320dp"
+    android:orientation="vertical" >
+    
+    <ImageView
+        android:id="@+id/ScoringDialogImg"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:layout_gravity="top|center"
+        android:contentDescription="bam, an image!"
+        android:src="@drawable/winar" />
+    
+    <TextView
+    android:id="@+id/ScoringDialogText"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="top|center"
+    android:gravity="center"
+    android:text="You got all of the points! You win!"
+    />
+    
+    
+
+</LinearLayout>

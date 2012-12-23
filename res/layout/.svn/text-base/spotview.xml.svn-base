@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <RelativeLayout
+        android:id="@+id/relativeLayout1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.99" >
+
+        <ImageView
+            android:id="@+id/SpotIcon"
+            android:layout_width="49dp"
+            android:layout_height="42dp"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentTop="true"
+            android:duplicateParentState="true"
+            android:minHeight="42dp"
+            android:minWidth="49dp"
+            android:paddingRight="10dp"
+            android:scaleType="fitXY" />
+
+        <TextView
+            android:id="@+id/spotnamefield"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentTop="true"
+            android:layout_toRightOf="@+id/SpotIcon"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    </RelativeLayout>
+
+    <ImageView
+        android:id="@+id/imageView1"
+        android:layout_width="match_parent"
+        android:layout_height="336dp"
+        android:cropToPadding="true"
+        android:src="@drawable/hedgehog" />
+
+</LinearLayout>

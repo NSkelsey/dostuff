@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    
+    
+    <!--  Theme for our whole application; no title bar, no notification bar,
+	no dimming when we pop up dialogs -->
+	<style name="DoStuffTheme" parent="@android:style/Theme.NoTitleBar"/>
+	
+    	<!--  Theme for our scoring dialog thing -->
+	<style name="ScoreDialogTheme" parent="@android:style/Theme.Dialog">
+		<item name="android:windowIsFloating">true</item>
+		<item name="android:windowNoTitle">true</item>
+		<item name="android:windowFrame">@null</item>
+	</style>
+    
+</resources>

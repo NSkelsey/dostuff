@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+	<color name="transp_white">#aaffffff</color>
+	<color name="transp_gray">#44444444</color>
+	<color name="black_bg">#ff191919</color>
+	<color name="androidfocus_light_part">#ff8e00</color>
+	<color name="androidfocus_dark_part">#ffff8000</color>
+	<color name="success">#00aa00</color>
+</resources>
+
